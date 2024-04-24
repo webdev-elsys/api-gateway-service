@@ -16,12 +16,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final UserApiService userApiService;
-    private final JwtServiceImpl jwtServiceImpl;
+    private final JwtServiceImpl jwtService;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
     private final RedisService redisService;
 
@@ -36,12 +37,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse generateTokens(UserDto user) {
-        String accessToken = jwtServiceImpl.generateAccessToken(user.uuid());
-        String refreshToken = jwtServiceImpl.generateRefreshToken(user.uuid());
+        String accessToken = jwtService.generateAccessToken(user.uuid());
+        String refreshToken = jwtService.generateRefreshToken(user.uuid());
 
         redisService.save(user.uuid(), passwordEncoder.encode(refreshToken));
 
-        return new AuthResponse(accessToken, refreshToken);
+        return new AuthResponse(user.uuid(), accessToken, refreshToken);
     }
 
     @Override
@@ -55,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         refreshToken = authHeader.substring(7);
-        userUuid = jwtServiceImpl.extractUuid(refreshToken);
+        userUuid = jwtService.extractUuid(refreshToken);
 
         if (userUuid != null) {
             String oldRefreshToken = redisService.get(userUuid);
@@ -64,14 +65,17 @@ public class AuthServiceImpl implements AuthService {
                 throw new IllegalArgumentException("Invalid refresh token");
             }
 
-            if (jwtServiceImpl.validateToken(refreshToken)) {
-                String accessToken = jwtServiceImpl.generateAccessToken(userUuid);
-                String newRefreshToken = jwtServiceImpl.generateRefreshToken(userUuid);
+            if (jwtService.validateToken(refreshToken)) {
+                String accessToken = jwtService.generateAccessToken(userUuid);
+                String newRefreshToken = jwtService.generateRefreshToken(userUuid);
 
                 redisService.save(userUuid, passwordEncoder.encode(newRefreshToken));
 
-                AuthResponse authResponse = new AuthResponse(accessToken, newRefreshToken);
-                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+                HashMap<String, String> refreshResponse = new HashMap<>();
+                refreshResponse.put("accessToken", accessToken);
+                refreshResponse.put("refreshToken", newRefreshToken);
+
+                new ObjectMapper().writeValue(response.getOutputStream(), refreshResponse);
             }
         }
     }
@@ -81,6 +85,16 @@ public class AuthServiceImpl implements AuthService {
                 .getContext()
                 .getAuthentication()
                 .getName();
+
+        if (userUuid == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        String oldRefreshToken = redisService.get(userUuid);
+
+        if (oldRefreshToken == null) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
 
         redisService.delete(userUuid);
     }

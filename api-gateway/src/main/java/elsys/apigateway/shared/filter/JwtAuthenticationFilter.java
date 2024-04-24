@@ -1,6 +1,7 @@
 package elsys.apigateway.shared.filter;
 
 import elsys.apigateway.service.Impl.JwtServiceImpl;
+import elsys.apigateway.service.RedisService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,7 +23,9 @@ import java.util.Collections;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final JwtServiceImpl jwtServiceImpl;
+    private final JwtServiceImpl jwtService;
+    private final RedisService redisService;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
     @Override
     protected void doFilterInternal(
@@ -33,11 +38,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String uuid = null;
 
             if (jwt != null) {
-                uuid = jwtServiceImpl.extractUuid(jwt);
+                uuid = jwtService.extractUuid(jwt);
             }
 
             if (uuid != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                if (jwtServiceImpl.validateToken(jwt)) {
+                String refreshToken = redisService.get(uuid);
+
+                if (jwtService.validateToken(jwt) && refreshToken != null && passwordEncoder.matches(jwt, refreshToken)) {
                     SecurityContextHolder.getContext().setAuthentication(
                             new UsernamePasswordAuthenticationToken(uuid, null, Collections.emptyList())
                     );
