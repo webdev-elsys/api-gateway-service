@@ -17,12 +17,12 @@ import java.util.List;
 public class PropertyController {
     private final PropertyApiService propertyApiService;
 
+    // TODO: FIX THIS (the request doesn't contain a multipart/form-data or multipart/mixed stream, content type header is null)
     @PostMapping()
     public ResponseEntity<Object> addProperty(
         @RequestPart("data") Object propertyData,
         @RequestPart("images") MultipartFile[] images
     ) {
-        System.out.println("PropertyController.addProperty");
         return ResponseEntity.ok(propertyApiService.addProperty(propertyData, images));
     }
 

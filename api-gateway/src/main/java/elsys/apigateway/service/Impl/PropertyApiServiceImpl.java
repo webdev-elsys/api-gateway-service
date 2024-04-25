@@ -21,7 +21,6 @@ public class PropertyApiServiceImpl implements PropertyApiService {
         this.webClient = webClientBuilder.build();
     }
 
-
     // TODO: FIX THIS (the request doesn't contain a multipart/form-data or multipart/mixed stream, content type header is null)
     @Override
     public Object addProperty(Object propertyData, MultipartFile[] images) {
@@ -31,8 +30,8 @@ public class PropertyApiServiceImpl implements PropertyApiService {
         formData.add("data", propertyData);
         formData.add("images", images);
 
-
-        return webClient.post()
+        return webClient
+                .post()
                 .uri(endpoint)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(formData)
@@ -45,7 +44,8 @@ public class PropertyApiServiceImpl implements PropertyApiService {
     public List<Object> getAvailableRooms(String propertyUuid, LocalDate checkInDate, LocalDate checkOutDate, int guests) {
         String endpoint = PropertyApiEndpoints.getAvailableRooms(propertyUuid, checkInDate, checkOutDate, guests);
 
-        return webClient.get()
+        return webClient
+                .get()
                 .uri(endpoint)
                 .retrieve()
                 .bodyToFlux(Object.class)
@@ -61,7 +61,8 @@ public class PropertyApiServiceImpl implements PropertyApiService {
                 .getName();
         String endpoint = PropertyApiEndpoints.getOwnerProperties(ownerUuid);
 
-        return webClient.get()
+        return webClient
+                .get()
                 .uri(endpoint)
                 .retrieve()
                 .bodyToFlux(Object.class)
@@ -73,7 +74,8 @@ public class PropertyApiServiceImpl implements PropertyApiService {
     public Object getPropertiesByCityAndCountry(String city, String country, int page, int size) {
         String endpoint = PropertyApiEndpoints.getPropertiesByCityAndCountry(city, country, page, size);
 
-        return webClient.get()
+        return webClient
+                .get()
                 .uri(endpoint)
                 .retrieve()
                 .bodyToMono(Object.class)

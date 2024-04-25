@@ -19,7 +19,8 @@ public class UserApiServiceImpl implements UserApiService {
     public UserDto signUp(Object signUpRequest) {
         String endpoint = UserApiEndpoints.signUp();
 
-        return webClient.post()
+        return webClient
+                .post()
                 .uri(endpoint)
                 .bodyValue(signUpRequest)
                 .retrieve()
@@ -30,7 +31,8 @@ public class UserApiServiceImpl implements UserApiService {
     public UserDto signIn(Object signInRequest) {
         String endpoint = UserApiEndpoints.signIn();
 
-        return webClient.post()
+        return webClient
+                .post()
                 .uri(endpoint)
                 .bodyValue(signInRequest)
                 .retrieve()
